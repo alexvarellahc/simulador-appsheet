@@ -1,14 +1,45 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/simulador-appsheet/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + Preact</title>
-    <script type="module" crossorigin src="/simulador-appsheet/assets/index-CdkocPn1.js"></script>
-    <link rel="stylesheet" crossorigin href="/simulador-appsheet/assets/index-Dtn62Xmo.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>
+/* src/index.css */
+
+/* Diretivas do Tailwind CSS: essenciais para que o Tailwind funcione */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Importação da fonte Inter do Google Fonts */
+/* Adicione esta regra @import no topo do seu CSS */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Estilos globais e base */
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif; /* Aplica a fonte Inter ao corpo */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* --- SEUS ESTILOS PERSONALIZADOS PARA A LOGO E CABEÇALHO --- */
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centraliza itens no cabeçalho */
+    text-align: center;
+    padding-bottom: 20px; /* Adiciona um pouco de espaço na parte inferior */
+}
+
+.logo {
+  max-width: 180px; /* Ajuste o tamanho máximo da largura do seu logo conforme necessário */
+  height: auto;     /* Mantém a proporção da imagem */
+  margin-bottom: 20px; /* Adiciona um espaço abaixo do logo */
+  display: block; /* Garante que o logo ocupe sua própria linha */
+  /* O `mx-auto` no JSX já centraliza, mas esta propriedade `display: block;` é boa prática para imagens */
+}
+
+/* --- FIM DOS SEUS ESTILOS PERSONALIZADOS --- */
+
+/* Outros estilos ou ajustes podem ser adicionados aqui se necessário */
