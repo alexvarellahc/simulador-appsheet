@@ -3,14 +3,14 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://alexvarellahc.github.io/simulador-appsheet/", // <-- ADICIONADO/AJUSTADO ESTA LINHA
+  "homepage": "https://alexvarellahc.github.io/simulador-appsheet/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "predeploy": "npm run build",   // <-- ADICIONADO ESTA LINHA
-    "deploy": "gh-pages -d dist"    // <-- ADICIONADO ESTA LINHA
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "preact": "^10.19.6",
@@ -26,7 +26,7 @@
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
-    "gh-pages": "^6.1.1",             // <-- CERTIFIQUE-SE QUE ESTE FOI INSTALADO (npm install gh-pages --save-dev)
+    "gh-pages": "^6.1.1",
     "vite": "^5.2.0"
   }
 }
