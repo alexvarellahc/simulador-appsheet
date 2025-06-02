@@ -1,5 +1,14 @@
-import { render } from 'preact'
-import './index.css'
-import App from './App.jsx' // <--- AQUI ESTÁ A MUDANÇA! Removido as chaves { }
+// Importações de bibliotecas externas
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 
-render(<App />, document.getElementById('root'))
+// Importações locais
+import App from './App.jsx';
+import './index.css'; // Estilos globais da aplicação
+
+// Renderização do componente raiz
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
