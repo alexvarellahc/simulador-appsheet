@@ -1,1 +1,0 @@
-@tailwind base;@tailwind components;@tailwind utilities;body{margin:0;font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;background-color:#fff;color:#213547}.header-content{display:flex;flex-direction:column;align-items:center;text-align:center;padding-bottom:20px}.logo{max-width:180px;height:auto;margin-bottom:20px;display:block}
