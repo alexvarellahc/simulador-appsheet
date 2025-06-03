@@ -60,8 +60,10 @@ const App = () => {
     const [currentView, setCurrentView] = useState('welcome');
     // Estado para armazenar o usuário que está sendo editado no painel administrativo
     const [editingUser, setEditingUser] = useState(null);
+
     // Estado para gerenciar os dados do formulário de adicionar/editar usuário
-    const [userData, setUserData] = useState({
+    // MOVIDO PARA O TOPO DO COMPONENTE PARA SEGUIR AS REGRAS DOS HOOKS
+    const [formUserData, setFormUserData] = useState({
         name: '',
         email: '',
         role: 'User',
@@ -137,10 +139,12 @@ const App = () => {
 
         setLoading(true);
         setError(null);
-        console.log("Tentando carregar usuários do Firestore...");
-
+        
         // Caminho da coleção pública para os usuários
-        const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
+        const usersCollectionPath = `artifacts/${appId}/public/data/users`;
+        console.log("Tentando carregar usuários do Firestore no caminho:", usersCollectionPath);
+
+        const usersCollectionRef = collection(db, usersCollectionPath);
 
         const unsubscribe = onSnapshot(usersCollectionRef, (snapshot) => {
             const fetchedUsers = snapshot.docs.map(doc => ({
@@ -216,6 +220,21 @@ const App = () => {
         createDefaultAdmin();
     }, [db, isAuthReady, userId]); // Dependências: executar quando db, auth e userId estiverem prontos
 
+    // MOVIDO PARA O TOPO DO COMPONENTE PARA SEGUIR AS REGRAS DOS HOOKS
+    // Effect para resetar formUserData quando a view muda ou editingUser é atualizado
+    useEffect(() => {
+        // Define initialUserData com base no modo de edição ou adição
+        const initialUserData = editingUser ? editingUser : {
+            name: '',
+            email: '',
+            role: 'User',
+            active: true,
+            accessibleApps: []
+        };
+        setFormUserData(initialUserData);
+    }, [currentView, editingUser]); // Dependências: executar quando a view ou o usuário em edição mudam
+
+
     // Funções auxiliares para obter detalhes do usuário
     const getUserRole = email => users.find(u => u.email === email)?.role || 'Guest';
     const getUserName = email => users.find(u => u.email === email)?.name || 'Unknown';
@@ -235,13 +254,13 @@ const App = () => {
 
             await setDoc(userDocRef, user, { merge: true }); // 'merge: true' para atualizar campos existentes
             setEditingUser(null);
-            setUserData({
-                name: '',
-                email: '',
-                role: 'User',
-                active: true,
-                accessibleApps: []
-            });
+            // setUserData({ // Esta linha não é mais necessária aqui, pois formUserData é gerido por um useEffect
+            //     name: '',
+            //     email: '',
+            //     role: 'User',
+            //     active: true,
+            //     accessibleApps: []
+            // });
             setCurrentView('admin-users');
             console.log("Usuário salvo com sucesso:", user.email);
         } catch (saveError) {
@@ -273,17 +292,19 @@ const App = () => {
     };
 
     // Lida com as mudanças nos campos do formulário de usuário
-    const handleChange = (e) => {
+    // Agora usa formUserData
+    const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setUserData(prev => ({
+        setFormUserData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
     };
 
     // Lida com a alternância de acesso a aplicativos no formulário
-    const handleAppToggle = (appName) => {
-        setUserData(prev => ({
+    // Agora usa formUserData
+    const handleFormAppToggle = (appName) => {
+        setFormUserData(prev => ({
             ...prev,
             accessibleApps: prev.accessibleApps.includes(appName)
                 ? prev.accessibleApps.filter(app => app !== appName)
@@ -294,7 +315,7 @@ const App = () => {
     // Lida com o envio do formulário de usuário
     const handleSubmit = (e) => {
         e.preventDefault();
-        handleSaveUser(userData);
+        handleSaveUser(formUserData);
     };
 
     // Renderização condicional dos componentes com foco em centralização e ícones
@@ -423,14 +444,9 @@ const App = () => {
                             </button>
                             <button
                                 onClick={() => {
-                                    setUserData({ // Resetar o formulário para adicionar novo usuário
-                                        name: '',
-                                        email: '',
-                                        role: 'User',
-                                        active: true,
-                                        accessibleApps: []
-                                    });
+                                    // Ao clicar em "Adicionar Novo Usuário", resetar o formulário
                                     setEditingUser(null); // Garantir que não estamos em modo de edição
+                                    // O useEffect para formUserData cuidará de resetar o estado
                                     setCurrentView('admin-add-user');
                                 }}
                                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-purple-300"
@@ -482,7 +498,6 @@ const App = () => {
                                                     <button
                                                         onClick={() => {
                                                             setEditingUser(user); // Define o usuário a ser editado
-                                                            setUserData({ ...user }); // Preenche o formulário com os dados do usuário
                                                             setCurrentView('admin-edit-user');
                                                         }}
                                                         className="p-2 rounded-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition duration-200"
@@ -516,64 +531,15 @@ const App = () => {
             case 'admin-add-user':
             case 'admin-edit-user':
                 const isEditing = currentView === 'admin-edit-user';
-                // Set initial form data based on whether it's an edit or add operation
-                const initialUserData = isEditing ? editingUser : {
-                    name: '',
-                    email: '',
-                    role: 'User',
-                    active: true,
-                    accessibleApps: []
-                };
-
-                // State for the form fields
-                // Usar um useState local para o formulário, inicializado com initialUserData
-                const [formUserData, setFormUserData] = useState(initialUserData);
-
-                // Effect para resetar formUserData quando a view muda ou editingUser é atualizado
-                useEffect(() => {
-                    setFormUserData(initialUserData);
-                }, [currentView, editingUser]);
-
-                /**
-                 * Handles changes to input fields in the user form.
-                 * Updates the formUserData state accordingly.
-                 */
-                const handleFormChange = (e) => {
-                    const { name, value, type, checked } = e.target;
-                    setFormUserData(prev => ({
-                        ...prev,
-                        [name]: type === 'checkbox' ? checked : value
-                    }));
-                };
-
-                /**
-                 * Toggles the accessibility of an app for the current user being edited/added.
-                 * @param {string} appName - The name of the app to toggle.
-                 */
-                const handleFormAppToggle = (appName) => {
-                    setFormUserData(prev => ({
-                        ...prev,
-                        accessibleApps: prev.accessibleApps.includes(appName)
-                            ? prev.accessibleApps.filter(app => app !== appName) // Remove app if already present
-                            : [...prev.accessibleApps, appName] // Add app if not present
-                    }));
-                };
-
-                /**
-                 * Handles the form submission for adding or updating a user.
-                 * Prevents default form submission and calls handleSaveUser.
-                 */
-                const handleFormSubmit = (e) => {
-                    e.preventDefault();
-                    handleSaveUser(formUserData);
-                };
+                // O initialUserData é agora gerido pelo useEffect no topo do componente.
+                // Não é necessário declará-lo aqui.
 
                 return (
                     <div className="p-6 bg-white rounded-lg shadow-md max-w-xl mx-auto">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
                             <Icon name="user-plus" className="w-6 h-6 text-purple-600" /> {isEditing ? 'Editar Usuário' : 'Adicionar Novo Usuário'}
                         </h2>
-                        <form onSubmit={handleFormSubmit} className="space-y-4">
+                        <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label htmlFor="name" className="block text-gray-700 text-sm font-bold mb-2">Nome:</label>
                                 <input
