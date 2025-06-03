@@ -129,8 +129,12 @@ const App = () => {
 
             // Define o userEmail para o primeiro admin encontrado ou o primeiro usuário
             if (fetchedUsers.length > 0) {
-                const adminUser = fetchedUsers.find(u => u.role === 'Admin');
-                setUserEmail(adminUser ? adminUser.email : fetchedUsers[0].email);
+                const adminUser = fetchedUsers.find(u => u.email === 'admin@example.com'); // Procura especificamente pelo admin@example.com
+                if (adminUser) {
+                    setUserEmail(adminUser.email);
+                } else {
+                    setUserEmail(fetchedUsers[0].email); // Se não houver admin, usa o primeiro usuário
+                }
             } else {
                 // Se não houver usuários, define um email padrão ou vazio
                 setUserEmail('');
