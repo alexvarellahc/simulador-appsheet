@@ -14,7 +14,7 @@ const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial
 // Certifique-se de que o caminho './assets/logo alex.png' está correto em relação a este ficheiro.
 // import seuLogo from './assets/logo alex.png';
 
-// Componente Icon para SVG
+// Componente Icon para SVG - ESTE COMPONENTE DEVE ESTAR AQUI, NO SEU FICHEIRO REACT (App.jsx)
 const Icon = ({ name, className = '' }) => {
     const icons = {
         user: <path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />,
@@ -131,7 +131,8 @@ const App = () => {
                 const adminUser = fetchedUsers.find(u => u.role === 'Admin');
                 setUserEmail(adminUser ? adminUser.email : fetchedUsers[0].email);
             } else {
-                setUserEmail(''); // Nenhuma usuário, limpa o email
+                // Se não houver usuários, define um email padrão ou vazio
+                setUserEmail('');
             }
 
         }, (firestoreError) => {
@@ -274,6 +275,7 @@ const App = () => {
                                 >
                                     <Icon name="apps" className="w-5 h-5" /> Ver Aplicativos
                                 </button>
+                                {/* Removido o botão "Ver Usuários" para não-administradores */}
                             </div>
                         ) : (
                             <p className="text-red-600 text-xl font-medium mt-4">Usuário inativo. Entre em contato com o administrador.</p>
@@ -530,6 +532,49 @@ const App = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                );
+
+            case 'view-users': // Esta view foi removida do fluxo de navegação
+                return (
+                    <div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
+                            <Icon name="user" className="w-6 h-6 text-gray-600" /> Lista de Usuários
+                        </h2>
+                        <div className="overflow-x-auto mb-8">
+                            <table className="min-w-full bg-white rounded-lg shadow-md">
+                                <thead className="bg-gray-200">
+                                    <tr>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nome</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Email</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Função</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Ativo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users.map(user => (
+                                        <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                            <td className="py-3 px-4 text-gray-800">{user.name}</td>
+                                            <td className="py-3 px-4 text-gray-800">{user.email}</td>
+                                            <td className="py-3 px-4 text-gray-800">{user.role}</td>
+                                            <td className="py-3 px-4 text-gray-800">
+                                                {user.active ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Sim</span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Não</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button
+                            onClick={() => setCurrentView('welcome')}
+                            className="flex items-center justify-center gap-2 bg-gray-500 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-gray-300 mx-auto"
+                        >
+                            <Icon name="home" className="w-5 h-5" /> Voltar ao Início
+                        </button>
                     </div>
                 );
 
