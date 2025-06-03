@@ -7,6 +7,7 @@ import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, getDoc } 
 // NÃO as modifique, elas serão preenchidas em tempo de execução.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+// CORREÇÃO: Usar __initial_auth_token no lado direito do ternário
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 // Se estiver a correr localmente no seu ambiente de desenvolvimento:
