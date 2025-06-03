@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+
+// Variáveis globais fornecidas pelo ambiente Canvas para Firebase
+// NÃO as modifique, elas serão preenchidas em tempo de execução.
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 // Se estiver a correr localmente no seu ambiente de desenvolvimento:
 // Pode descomentar a linha abaixo e usar o seu ficheiro de logo local.
@@ -26,7 +35,13 @@ const Icon = ({ name, className = '' }) => {
 };
 
 const App = () => {
-    // Estado para simular o login do usuário atual
+    // Estados para Firebase
+    const [db, setDb] = useState(null);
+    const [auth, setAuth] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [isAuthReady, setIsAuthReady] = useState(false); // Para saber quando a autenticação está pronta
+
+    // Estado para simular o login do usuário atual (será substituído pelo Firestore)
     const [userEmail, setUserEmail] = useState('admin@example.com');
     // Estado para controlar qual view está sendo exibida (welcome, apps, admin, etc.)
     const [currentView, setCurrentView] = useState('welcome');
@@ -41,6 +56,11 @@ const App = () => {
         accessibleApps: []
     });
 
+    // Estado para os usuários carregados do Firestore
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
     // Dados mockados para os aplicativos externos (mantidos em ordem)
     const mockExternalApps = [
         { name: 'SISTEMA CT', url: 'https://www.appsheet.com/start/9f46034d-5c24-43c8-a637-ba8f7bc0700f' },
@@ -52,40 +72,129 @@ const App = () => {
         { name: 'ESTOQUE', url: 'https://www.appsheet.com/start/f3558652-c5b9-4756-bbd3-51f6a8dfac93' }
     ];
 
-    // Estado para gerenciar a lista de usuários
-    const [users, setUsers] = useState([
-        { id: '1', name: 'Admin', email: 'admin@example.com', role: 'Admin', active: true, accessibleApps: mockExternalApps.map(app => app.name) },
-        { id: '2', name: 'User', email: 'user@example.com', role: 'User', active: true, accessibleApps: ['SISTEMA CT', 'FINANCEIRO'] },
-        { id: '3', name: 'Guest', email: 'guest@example.com', role: 'Guest', active: true, accessibleApps: ['SISTEMA CT'] }
-    ]);
+    // 1. Inicialização do Firebase e Autenticação
+    useEffect(() => {
+        const app = initializeApp(firebaseConfig);
+        const authInstance = getAuth(app);
+        const dbInstance = getFirestore(app);
+
+        setAuth(authInstance);
+        setDb(dbInstance);
+
+        // Listener para o estado de autenticação
+        const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+            if (user) {
+                setUserId(user.uid);
+            } else {
+                // Se não houver usuário autenticado com token, tenta autenticar anonimamente
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(authInstance, initialAuthToken);
+                    } else {
+                        await signInAnonymously(authInstance);
+                    }
+                    setUserId(authInstance.currentUser?.uid || crypto.randomUUID()); // Garante que userId é definido
+                } catch (anonAuthError) {
+                    console.error("Erro ao autenticar anonimamente:", anonAuthError);
+                    setError("Falha na autenticação. Tente novamente.");
+                }
+            }
+            setIsAuthReady(true); // Autenticação inicial verificada
+        });
+
+        return () => unsubscribe(); // Limpa o listener ao desmontar
+    }, []);
+
+    // 2. Carregar Usuários do Firestore (após autenticação e db estarem prontos)
+    useEffect(() => {
+        if (!db || !isAuthReady || !userId) {
+            // Espera até que o Firestore e a autenticação estejam prontos
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        // Caminho da coleção pública para os usuários
+        const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
+
+        const unsubscribe = onSnapshot(usersCollectionRef, (snapshot) => {
+            const fetchedUsers = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setUsers(fetchedUsers);
+            setLoading(false);
+
+            // Define o userEmail para o primeiro admin encontrado ou o primeiro usuário
+            if (fetchedUsers.length > 0) {
+                const adminUser = fetchedUsers.find(u => u.role === 'Admin');
+                setUserEmail(adminUser ? adminUser.email : fetchedUsers[0].email);
+            } else {
+                setUserEmail(''); // Nenhuma usuário, limpa o email
+            }
+
+        }, (firestoreError) => {
+            console.error("Erro ao carregar usuários do Firestore:", firestoreError);
+            setError("Erro ao carregar usuários. Tente recarregar a página.");
+            setLoading(false);
+        });
+
+        return () => unsubscribe(); // Limpa o listener ao desmontar
+    }, [db, isAuthReady, userId]); // Dependências para re-executar quando db ou userId mudam
 
     // Funções auxiliares para obter detalhes do usuário
     const getUserRole = email => users.find(u => u.email === email)?.role || 'Guest';
     const getUserName = email => users.find(u => u.email === email)?.name || 'Unknown';
     const isUserActive = email => users.find(u => u.email === email)?.active || false;
 
-    // Função para adicionar ou atualizar um usuário
-    const handleSaveUser = (user) => {
-        if (user.id) {
-            setUsers(prevUsers => prevUsers.map(u => u.id === user.id ? user : u));
-        } else {
-            setUsers(prevUsers => [...prevUsers, { ...user, id: crypto.randomUUID() }]);
+    // Função para adicionar ou atualizar um usuário no Firestore
+    const handleSaveUser = async (user) => {
+        if (!db) {
+            setError("Base de dados não inicializada.");
+            return;
         }
-        // Resetar o estado do formulário e o usuário em edição após salvar
-        setEditingUser(null);
-        setUserData({
-            name: '',
-            email: '',
-            role: 'User',
-            active: true,
-            accessibleApps: []
-        });
-        setCurrentView('admin-users'); // Retorna para a lista de usuários após salvar
+        setLoading(true);
+        setError(null);
+        try {
+            const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
+            const userDocRef = doc(usersCollectionRef, user.id || crypto.randomUUID()); // Usa ID existente ou gera um novo
+
+            await setDoc(userDocRef, user, { merge: true }); // 'merge: true' para atualizar campos existentes
+            setEditingUser(null);
+            setUserData({
+                name: '',
+                email: '',
+                role: 'User',
+                active: true,
+                accessibleApps: []
+            });
+            setCurrentView('admin-users');
+        } catch (saveError) {
+            console.error("Erro ao salvar usuário no Firestore:", saveError);
+            setError("Erro ao salvar usuário. Verifique os dados e tente novamente.");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // Função para deletar um usuário
-    const handleDeleteUser = (userId) => {
-        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    // Função para deletar um usuário do Firestore
+    const handleDeleteUser = async (userIdToDelete) => {
+        if (!db) {
+            setError("Base de dados não inicializada.");
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        try {
+            const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
+            await deleteDoc(doc(usersCollectionRef, userIdToDelete));
+        } catch (deleteError) {
+            console.error("Erro ao deletar usuário do Firestore:", deleteError);
+            setError("Erro ao deletar usuário. Tente novamente.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Lida com as mudanças nos campos do formulário de usuário
@@ -118,6 +227,30 @@ const App = () => {
         const role = getUserRole(userEmail);
         const name = getUserName(userEmail);
         const active = isUserActive(userEmail);
+
+        if (!isAuthReady || loading) {
+            return (
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+                    <p className="ml-4 text-lg text-gray-700">A carregar dados...</p>
+                </div>
+            );
+        }
+
+        if (error) {
+            return (
+                <div className="text-center p-6 bg-red-100 text-red-700 rounded-lg shadow-md max-w-lg mx-auto">
+                    <p className="font-bold text-xl mb-2">Erro:</p>
+                    <p>{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
+                    >
+                        Recarregar Página
+                    </button>
+                </div>
+            );
+        }
 
         switch (currentView) {
             case 'welcome':
@@ -160,6 +293,9 @@ const App = () => {
                                 ))}
                             </select>
                         </div>
+                        {userId && (
+                            <p className="mt-4 text-sm text-gray-500">ID do Usuário Logado: <span className="font-mono text-gray-700 break-all">{userId}</span></p>
+                        )}
                     </div>
                 );
 
