@@ -122,30 +122,30 @@ const App = () => {
         switch (currentView) {
             case 'welcome':
                 return (
-                    <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-lg mx-auto">
+                    <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-lg mx-auto flex flex-col items-center justify-center">
                         <h1 className="text-3xl font-extrabold text-gray-800 mb-4">Bem-vindo, {name}!</h1>
                         <p className="text-lg text-gray-600 mb-6">Sua função: <span className="font-semibold text-blue-700">{role}</span></p>
                         {active ? (
-                            <div className="flex flex-col sm:flex-row justify-center gap-4">
+                            <div className="flex flex-col sm:flex-row justify-center gap-4 w-full px-4">
                                 {role === 'Admin' && (
                                     <button
                                         onClick={() => setCurrentView('admin')}
-                                        className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300"
+                                        className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300 w-full sm:w-auto"
                                     >
                                         <Icon name="shield" className="w-5 h-5" /> Painel Admin
                                     </button>
                                 )}
                                 <button
                                     onClick={() => setCurrentView('apps')}
-                                    className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-green-300"
+                                    className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-green-300 w-full sm:w-auto"
                                 >
                                     <Icon name="apps" className="w-5 h-5" /> Ver Aplicativos
                                 </button>
                             </div>
                         ) : (
-                            <p className="text-red-600 text-xl font-medium">Usuário inativo. Entre em contato com o administrador.</p>
+                            <p className="text-red-600 text-xl font-medium mt-4">Usuário inativo. Entre em contato com o administrador.</p>
                         )}
-                        <div className="mt-8">
+                        <div className="mt-8 w-full px-4">
                             <label htmlFor="user-select" className="block text-gray-700 text-sm font-bold mb-2">
                                 Simular Login como:
                             </label>
@@ -153,7 +153,7 @@ const App = () => {
                                 id="user-select"
                                 value={userEmail}
                                 onChange={(e) => setUserEmail(e.target.value)}
-                                className="shadow appearance-none border rounded-lg w-full sm:w-auto py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                className="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             >
                                 {users.map(u => (
                                     <option key={u.id} value={u.email}>{u.name} ({u.role})</option>
