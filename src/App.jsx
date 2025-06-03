@@ -89,13 +89,10 @@ const App = () => {
 
     // 1. Inicialização do Firebase e Autenticação
     useEffect(() => {
-        // console.log("Iniciando Firebase..."); // Removido log
         try {
             const app = initializeApp(firebaseConfig);
             const authInstance = getAuth(app);
             const dbInstance = getFirestore(app);
-
-            // console.log("Auth Instance:", authInstance); // Removido log
 
             setAuth(authInstance);
             setDb(dbInstance);
@@ -103,14 +100,11 @@ const App = () => {
             // Listener para o estado de autenticação
             const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
                 if (user) {
-                    // console.log("Usuário autenticado:", user.uid); // Removido log
                     setUserId(user.uid);
                 } else {
-                    // console.log("Nenhum usuário autenticado. Tentando autenticação anónima..."); // Removido log
                     // Tenta sempre autenticar anonimamente primeiro para evitar problemas com custom tokens
                     try {
                         await signInAnonymously(authInstance);
-                        // console.log("Autenticação anónima bem-sucedida. UID:", authInstance.currentUser?.uid); // Removido log
                         setUserId(authInstance.currentUser?.uid || crypto.randomUUID()); // Garante que userId é definido
                     } catch (anonAuthError) {
                         console.error("Erro ao autenticar anonimamente:", anonAuthError);
@@ -118,7 +112,6 @@ const App = () => {
                     }
                 }
                 setIsAuthReady(true); // Autenticação inicial verificada
-                // console.log("Autenticação pronta (isAuthReady = true)."); // Removido log
             });
 
             return () => unsubscribe(); // Limpa o listener ao desmontar
@@ -133,7 +126,6 @@ const App = () => {
     useEffect(() => {
         if (!db || !isAuthReady || !userId) {
             // Espera até que o Firestore e a autenticação estejam prontos
-            // console.log("Aguardando DB, autenticação ou userId para carregar usuários."); // Removido log
             return;
         }
 
@@ -142,7 +134,6 @@ const App = () => {
         
         // Caminho da coleção pública para os usuários
         const usersCollectionPath = `artifacts/${appId}/public/data/users`;
-        // console.log("Tentando carregar usuários do Firestore no caminho:", usersCollectionPath); // Removido log
 
         const usersCollectionRef = collection(db, usersCollectionPath);
 
@@ -153,22 +144,18 @@ const App = () => {
             }));
             setUsers(fetchedUsers);
             setLoading(false);
-            // console.log("Usuários carregados do Firestore:", fetchedUsers); // Removido log
 
             // Define o userEmail para o primeiro admin encontrado ou o primeiro usuário
             if (fetchedUsers.length > 0) {
                 const adminUser = fetchedUsers.find(u => u.email === 'admin@example.com'); // Procura especificamente pelo admin@example.com
                 if (adminUser) {
                     setUserEmail(adminUser.email);
-                    // console.log("Simulando login como Admin:", adminUser.email); // Removido log
                 } else {
                     setUserEmail(fetchedUsers[0].email); // Se não houver admin, usa o primeiro usuário
-                    // console.log("Simulando login como primeiro usuário:", fetchedUsers[0].email); // Removido log
                 }
             } else {
                 // Se não houver usuários, define um email padrão ou vazio
                 setUserEmail('');
-                // console.log("Nenhum usuário encontrado no Firestore. userEmail definido como vazio."); // Removido log
             }
 
         }, (firestoreError) => {
@@ -184,7 +171,6 @@ const App = () => {
     useEffect(() => {
         const createDefaultAdmin = async () => {
             if (!db || !isAuthReady || !userId) {
-                // console.log("Aguardando DB, autenticação ou userId para criar admin padrão."); // Removido log
                 return;
             }
 
@@ -193,10 +179,8 @@ const App = () => {
             const adminDocRef = doc(usersCollectionRef, 'admin-default'); // ID fixo para o admin padrão
 
             try {
-                // console.log("Verificando se o usuário admin padrão existe..."); // Removido log
                 const adminDoc = await getDoc(adminDocRef);
                 if (!adminDoc.exists()) {
-                    // console.log("Criando usuário admin padrão..."); // Removido log
                     const defaultAdminUser = {
                         id: 'admin-default',
                         name: 'Admin Padrão',
@@ -206,10 +190,9 @@ const App = () => {
                         accessibleApps: mockExternalApps.map(app => app.name)
                     };
                     await setDoc(adminDocRef, defaultAdminUser);
-                    // console.log("Usuário admin padrão criado com sucesso."); // Removido log
                     // O onSnapshot listener irá capturar e atualizar o estado 'users' e 'userEmail'
                 } else {
-                    // console.log("Usuário admin padrão já existe."); // Removido log
+                    // Usuário admin padrão já existe.
                 }
             } catch (err) {
                 console.error("Erro ao verificar/criar admin padrão:", err);
@@ -263,7 +246,6 @@ const App = () => {
                 accessibleApps: []
             });
             setCurrentView('admin-users');
-            // console.log("Usuário salvo com sucesso:", user.email); // Removido log
         } catch (saveError) {
             console.error("Erro ao salvar usuário no Firestore:", saveError);
             setError("Erro ao salvar usuário. Verifique os dados e tente novamente.");
@@ -283,7 +265,6 @@ const App = () => {
         try {
             const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
             await deleteDoc(doc(usersCollectionRef, userIdToDelete));
-            // console.log("Usuário deletado com sucesso:", userIdToDelete); // Removido log
         } catch (deleteError) {
             console.error("Erro ao deletar usuário do Firestore:", deleteError);
             setError("Erro ao deletar usuário. Tente novamente.");
@@ -640,6 +621,15 @@ const App = () => {
             <script src="https://cdn.tailwindcss.com"></script>
             <style>
                 {`
+                /* Basic CSS Reset to ensure consistent box-sizing and remove default margins/paddings */
+                *, *::before, *::after {
+                    box-sizing: border-box;
+                }
+                html, body {
+                    margin: 0;
+                    padding: 0;
+                    min-height: 100%; /* Ensure body takes full height */
+                }
                 /* Basic styling for the body to apply the Inter font */
                 body {
                     font-family: 'Inter', sans-serif;
