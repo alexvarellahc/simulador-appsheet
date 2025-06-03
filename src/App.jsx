@@ -76,6 +76,7 @@ const App = () => {
     // 1. Inicialização do Firebase e Autenticação
     useEffect(() => {
         console.log("Iniciando Firebase...");
+        console.log("Firebase Config:", firebaseConfig); // Adicionado para depuração
         try {
             const app = initializeApp(firebaseConfig);
             const authInstance = getAuth(app);
