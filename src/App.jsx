@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, onSnapshot, setDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
 
 // Sua configuração do Firebase, fornecida explicitamente.
-// Esta configuração será usada diretamente, em vez de depender de variáveis globais do ambiente.
 const firebaseConfig = {
   apiKey: "AIzaSyCjVr5-UHNxaBkqsg-7iEnr5GOjhDHLx-Y",
   authDomain: "simuladorappsheet.firebaseapp.com",
@@ -17,35 +16,6 @@ const firebaseConfig = {
 
 // O appId agora é derivado diretamente do projectId da sua configuração do Firebase
 const appId = firebaseConfig.projectId;
-
-// O token de autenticação inicial ainda pode ser fornecido pelo ambiente, se aplicável.
-// No entanto, para evitar o erro 'custom-token-mismatch', vamos focar na autenticação anónima.
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-// Se estiver a correr localmente no seu ambiente de desenvolvimento:
-// Pode descomentar a linha abaixo e usar o seu ficheiro de logo local.
-// Certifique-se de que o caminho './assets/logo alex.png' está correto em relação a este ficheiro.
-// import seuLogo from './assets/logo alex.2png';
-
-// Componente Icon para SVG
-const Icon = ({ name, className = '' }) => {
-    const icons = {
-        user: <path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />,
-        shield: <path d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.47-1.688 3.344-.48.403-.878.785-1.22 1.133-.163.163-.295.313-.385.437L12 21l-5.307-5.49a8.077 8.077 0 0 1-.386-.437 6.072 6.072 0 0 1-1.219-1.133A9.07 9.07 0 0 1 3 12c0-1.268.63-2.47 1.688-3.344.48-.403.878-.785 1.22-1.133.163-.163.295-.313.437L12 3l5.307 5.49a8.077 8.077 0 0 1 .386.437 6.072 6.072 0 0 1 1.219 1.133A9.07 9.07 0 0 1 21 12Z" />,
-        home: <path d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12m-4.5 9V15a2.25 2.25 0 0 0-2.25-2.25H15M10.5 21h3.75m-9.75-3v-4.5h4.5" />,
-        'plus-circle': <path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />,
-        'external-link': <path d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />,
-        apps: <path d="M10.5 8.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM10.5 18.75a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM18 8.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM18 18.75a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" />,
-        'user-plus': <path d="M18 18.75c0 .621-.504 1.125-1.125 1.125H5.25A1.125 1.125 0 0 1 4.125 19.5v-2.25m10.5-1.125h2.25c.621 0 1.125-.504 1.125-1.125v-1.5m-3.75-3.75H10.5m-1.5-4.5h.008v.008H9Zm2.25 0h.008v.008H11.25ZM6 10.5h.008v.008H6Zm2.25 0h.008v.008H8.25Z" />,
-        'pencil': <path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />,
-        'trash': <path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.927a2.25 2.25 0 0 1-2.244-2.077L4.78 5.893m14.825 0a.375.375 0 1 0 0-.75.375.375 0 0 0 0 .75ZM7.5 14.25a.75.75 0 0 0 0 1.5h.008v.008H7.5V14.25Zm10.5 0a.75.75 0 0 0 0 1.5h.008v.008H18V14.25Zm-4.5 0a.75.75 0 0 0 0 1.5h.008v.008H13.5V14.25Z" />
-    };
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-            {icons[name]}
-        </svg>
-    );
-};
 
 const App = () => {
     // Estados para Firebase
@@ -62,7 +32,6 @@ const App = () => {
     const [editingUser, setEditingUser] = useState(null);
 
     // Estado para gerenciar os dados do formulário de adicionar/editar usuário
-    // MOVIDO PARA O TOPO DO COMPONENTE PARA SEGUIR AS REGRAS DOS HOOKS
     const [formUserData, setFormUserData] = useState({
         name: '',
         email: '',
@@ -73,7 +42,7 @@ const App = () => {
 
     // Estado para os usuários carregados do Firestore
     const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true); 
     const [error, setError] = useState(null);
 
     // Dados mockados para os aplicativos externos (mantidos em ordem)
@@ -97,44 +66,39 @@ const App = () => {
             setAuth(authInstance);
             setDb(dbInstance);
 
-            // Listener para o estado de autenticação
             const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
                 if (user) {
                     setUserId(user.uid);
                 } else {
-                    // Tenta sempre autenticar anonimamente primeiro para evitar problemas com custom tokens
                     try {
                         await signInAnonymously(authInstance);
-                        setUserId(authInstance.currentUser?.uid || crypto.randomUUID()); // Garante que userId é definido
+                        setUserId(authInstance.currentUser?.uid || crypto.randomUUID());
                     } catch (anonAuthError) {
                         console.error("Erro ao autenticar anonimamente:", anonAuthError);
                         setError("Falha na autenticação. Por favor, verifique a configuração de autenticação anónima no Firebase.");
                     }
                 }
-                setIsAuthReady(true); // Autenticação inicial verificada
+                setIsAuthReady(true);
             });
 
-            return () => unsubscribe(); // Limpa o listener ao desmontar
+            return () => unsubscribe();
         } catch (initError) {
             console.error("Erro na inicialização do Firebase:", initError);
             setError("Erro crítico na inicialização do sistema. Verifique a configuração do Firebase.");
-            setLoading(false); // Parar o estado de carregamento se a inicialização falhar
+            setLoading(false);
         }
     }, []);
 
     // 2. Carregar Usuários do Firestore (após autenticação e db estarem prontos)
     useEffect(() => {
         if (!db || !isAuthReady || !userId) {
-            // Espera até que o Firestore e a autenticação estejam prontos
             return;
         }
 
         setLoading(true);
         setError(null);
         
-        // Caminho da coleção pública para os usuários
         const usersCollectionPath = `artifacts/${appId}/public/data/users`;
-
         const usersCollectionRef = collection(db, usersCollectionPath);
 
         const unsubscribe = onSnapshot(usersCollectionRef, (snapshot) => {
@@ -145,16 +109,14 @@ const App = () => {
             setUsers(fetchedUsers);
             setLoading(false);
 
-            // Define o userEmail para o primeiro admin encontrado ou o primeiro usuário
             if (fetchedUsers.length > 0) {
-                const adminUser = fetchedUsers.find(u => u.email === 'admin@example.com'); // Procura especificamente pelo admin@example.com
+                const adminUser = fetchedUsers.find(u => u.email === 'admin@example.com'); 
                 if (adminUser) {
                     setUserEmail(adminUser.email);
                 } else {
-                    setUserEmail(fetchedUsers[0].email); // Se não houver admin, usa o primeiro usuário
+                    setUserEmail(fetchedUsers[0].email); 
                 }
             } else {
-                // Se não houver usuários, define um email padrão ou vazio
                 setUserEmail('');
             }
 
@@ -164,23 +126,36 @@ const App = () => {
             setLoading(false);
         });
 
-        return () => unsubscribe(); // Limpa o listener ao desmontar
-    }, [db, isAuthReady, userId]); // Dependências para re-executar quando db ou userId mudam
+        const loadingTimeout = setTimeout(() => {
+            if (loading) { 
+                console.warn("Timeout de carregamento de usuários atingido. Verifique dados ou permissões.");
+                setLoading(false);
+                if (!error) { 
+                    setError("O carregamento demorou muito. Verifique a conexão ou os dados.");
+                }
+            }
+        }, 10000); // 10 segundos de timeout
+
+        return () => {
+            unsubscribe(); 
+            clearTimeout(loadingTimeout); 
+        };
+    }, [db, isAuthReady, userId]); // Removido loading e error como dependências para evitar loop infinito
 
     // 3. Criar Admin Padrão se não existir
     useEffect(() => {
-        const createDefaultAdmin = async () => {
-            if (!db || !isAuthReady || !userId) {
-                return;
-            }
+        if (!db || !isAuthReady || !userId) {
+            return;
+        }
 
+        const createDefaultAdmin = async () => {
             const adminEmail = 'admin@example.com';
             const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
-            const adminDocRef = doc(usersCollectionRef, 'admin-default'); // ID fixo para o admin padrão
+            const adminDocRef = doc(usersCollectionRef, 'admin-default'); 
 
             try {
-                const adminDoc = await getDoc(adminDocRef);
-                if (!adminDoc.exists()) {
+                const adminDoc = await getDoc(adminDocRef); 
+                if (!adminDoc.exists()) { 
                     const defaultAdminUser = {
                         id: 'admin-default',
                         name: 'Admin Padrão',
@@ -189,10 +164,7 @@ const App = () => {
                         active: true,
                         accessibleApps: mockExternalApps.map(app => app.name)
                     };
-                    await setDoc(adminDocRef, defaultAdminUser);
-                    // O onSnapshot listener irá capturar e atualizar o estado 'users' e 'userEmail'
-                } else {
-                    // Usuário admin padrão já existe.
+                    await setDoc(adminDocRef, defaultAdminUser); 
                 }
             } catch (err) {
                 console.error("Erro ao verificar/criar admin padrão:", err);
@@ -201,12 +173,10 @@ const App = () => {
         };
 
         createDefaultAdmin();
-    }, [db, isAuthReady, userId]); // Dependências: executar quando db, auth e userId estiverem prontos
+    }, [db, isAuthReady, userId, appId, mockExternalApps]);
 
     // Effect para resetar formUserData quando a view muda ou editingUser é atualizado
-    // Agora está no topo do componente, fora de renderContent
     useEffect(() => {
-        // Define initialUserData com base no modo de edição ou adição
         const initialUserData = editingUser ? editingUser : {
             name: '',
             email: '',
@@ -215,8 +185,7 @@ const App = () => {
             accessibleApps: []
         };
         setFormUserData(initialUserData);
-    }, [currentView, editingUser]); // Dependências: executar quando a view ou o usuário em edição mudam
-
+    }, [currentView, editingUser]); 
 
     // Funções auxiliares para obter detalhes do usuário
     const getUserRole = email => users.find(u => u.email === email)?.role || 'Guest';
@@ -233,11 +202,10 @@ const App = () => {
         setError(null);
         try {
             const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
-            const userDocRef = doc(usersCollectionRef, user.id || crypto.randomUUID()); // Usa ID existente ou gera um novo
+            const userDocRef = doc(usersCollectionRef, user.id || crypto.randomUUID()); 
 
-            await setDoc(userDocRef, user, { merge: true }); // 'merge: true' para atualizar campos existentes
+            await setDoc(userDocRef, user, { merge: true }); 
             setEditingUser(null);
-            // Resetar o formulário após salvar
             setFormUserData({
                 name: '',
                 email: '',
@@ -264,7 +232,7 @@ const App = () => {
         setError(null);
         try {
             const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
-            await deleteDoc(doc(usersCollectionRef, userIdToDelete));
+            await deleteDoc(doc(usersCollectionRef, userIdToDelete)); 
         } catch (deleteError) {
             console.error("Erro ao deletar usuário do Firestore:", deleteError);
             setError("Erro ao deletar usuário. Tente novamente.");
@@ -274,7 +242,6 @@ const App = () => {
     };
 
     // Lida com as mudanças nos campos do formulário de usuário
-    // Agora usa formUserData
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormUserData(prev => ({
@@ -284,7 +251,6 @@ const App = () => {
     };
 
     // Lida com a alternância de acesso a aplicativos no formulário
-    // Agora usa formUserData
     const handleFormAppToggle = (appName) => {
         setFormUserData(prev => ({
             ...prev,
@@ -308,9 +274,9 @@ const App = () => {
 
         if (!isAuthReady || loading) {
             return (
-                <div className="flex justify-center items-center h-64">
+                <div className="flex flex-col items-center justify-center h-64">
                     <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
-                    <p className="ml-4 text-lg text-gray-700">A carregar dados...</p>
+                    <p className="mt-4 text-lg text-gray-700">A carregar dados...</p>
                 </div>
             );
         }
@@ -343,14 +309,14 @@ const App = () => {
                                         onClick={() => setCurrentView('admin')}
                                         className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300 w-full sm:w-auto"
                                     >
-                                        <Icon name="shield" className="w-5 h-5" /> Painel Admin
+                                        🛡️ Painel Admin
                                     </button>
                                 )}
                                 <button
                                     onClick={() => setCurrentView('apps')}
                                     className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-green-300 w-full sm:w-auto"
                                 >
-                                    <Icon name="apps" className="w-5 h-5" /> Ver Aplicativos
+                                    📱 Ver Aplicativos
                                 </button>
                                 {/* Removido o botão "Ver Usuários" para não-administradores */}
                             </div>
@@ -386,7 +352,7 @@ const App = () => {
                 return (
                     <div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto text-center">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
-                            <Icon name="apps" className="w-6 h-6 text-purple-600" /> Seus Aplicativos
+                            📱 Seus Aplicativos
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                             {sortedAccessibleApps.map(app => (
@@ -397,8 +363,7 @@ const App = () => {
                                     rel="noopener noreferrer"
                                     className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition duration-300 ease-in-out text-purple-800 font-semibold text-lg text-center border border-purple-200"
                                 >
-                                    <Icon name="external-link" className="w-6 h-6 mb-3 text-purple-600" />
-                                    {app.name}
+                                    🔗 {app.name}
                                 </a>
                             ))}
                         </div>
@@ -406,7 +371,7 @@ const App = () => {
                             onClick={() => setCurrentView('welcome')}
                             className="flex items-center justify-center gap-2 bg-gray-500 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-gray-300 mx-auto"
                         >
-                            <Icon name="home" className="w-5 h-5" /> Voltar ao Início
+                            🏠 Voltar ao Início
                         </button>
                     </div>
                 );
@@ -415,14 +380,14 @@ const App = () => {
                 return (
                     <div className="p-6 bg-white rounded-lg shadow-md max-w-xl mx-auto text-center">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
-                            <Icon name="shield" className="w-6 h-6 text-blue-600" /> Painel Administrativo
+                            🛡️ Painel Administrativo
                         </h2>
                         <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
                             <button
                                 onClick={() => setCurrentView('admin-users')}
                                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300"
                             >
-                                <Icon name="user" className="w-5 h-5" /> Gerenciar Usuários
+                                👤 Gerenciar Usuários
                             </button>
                             <button
                                 onClick={() => {
@@ -433,14 +398,14 @@ const App = () => {
                                 }}
                                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-purple-300"
                             >
-                                <Icon name="user-plus" className="w-5 h-5" /> Adicionar Novo Usuário
+                                ➕ Adicionar Novo Usuário
                             </button>
                         </div>
                         <button
                             onClick={() => setCurrentView('welcome')}
                             className="flex items-center justify-center gap-2 bg-gray-500 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-gray-300 mx-auto"
                         >
-                            <Icon name="home" className="w-5 h-5" /> Voltar ao Início
+                            🏠 Voltar ao Início
                         </button>
                     </div>
                 );
@@ -449,7 +414,7 @@ const App = () => {
                 return (
                     <div className="p-6 bg-white rounded-lg shadow-md max-w-5xl mx-auto">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
-                            <Icon name="user" className="w-6 h-6 text-blue-600" /> Cadastro e Gerenciamento de Usuários
+                            👤 Cadastro e Gerenciamento de Usuários
                         </h2>
                         <div className="overflow-x-auto mb-8">
                             <table className="min-w-full bg-white rounded-lg shadow-md">
@@ -485,14 +450,14 @@ const App = () => {
                                                         className="p-2 rounded-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition duration-200"
                                                         title="Editar Usuário"
                                                     >
-                                                        <Icon name="pencil" className="w-5 h-5" />
+                                                        ✏️
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteUser(user.id)}
                                                         className="p-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200 transition duration-200"
                                                         title="Excluir Usuário"
                                                     >
-                                                        <Icon name="trash" className="w-5 h-5" />
+                                                        🗑️
                                                     </button>
                                                 </div>
                                             </td>
@@ -505,7 +470,7 @@ const App = () => {
                             onClick={() => setCurrentView('admin')}
                             className="flex items-center justify-center gap-2 bg-gray-500 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-gray-300 mx-auto"
                         >
-                            <Icon name="home" className="w-5 h-5" /> Voltar ao Painel Admin
+                            🏠 Voltar ao Painel Admin
                         </button>
                     </div>
                 );
@@ -519,7 +484,7 @@ const App = () => {
                 return (
                     <div className="p-6 bg-white rounded-lg shadow-md max-w-xl mx-auto">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
-                            <Icon name="user-plus" className="w-6 h-6 text-purple-600" /> {isEditing ? 'Editar Usuário' : 'Adicionar Novo Usuário'}
+                            ➕ {isEditing ? 'Editar Usuário' : 'Adicionar Novo Usuário'}
                         </h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
@@ -615,7 +580,7 @@ const App = () => {
 
     return (
         // Main container for the application, with responsive styling and font
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 font-inter">
+        <div className="w-full font-inter"> 
             {/* Link to Google Fonts for 'Inter' and Tailwind CSS CDN for styling */}
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
             <script src="https://cdn.tailwindcss.com"></script>
@@ -628,7 +593,12 @@ const App = () => {
                 html, body {
                     margin: 0;
                     padding: 0;
-                    min-height: 100%; /* Ensure body takes full height */
+                    height: 100%; /* Use height: 100% instead of min-height for body */
+                    display: flex; /* Ensure body is a flex container */
+                    flex-direction: column; /* Stack content vertically */
+                    align-items: center; /* Center horizontally */
+                    justify-content: center; /* Center vertically */
+                    background-color: #e0f2f7; /* Cor de fundo para o body */
                 }
                 /* Basic styling for the body to apply the Inter font */
                 body {
