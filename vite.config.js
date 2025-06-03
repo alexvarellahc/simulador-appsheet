@@ -1,30 +1,25 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react'; // Certifique-se de que está a usar o plugin do React
+import react from '@vitejs/plugin-react';
 
 // Configuração do Vite
 export default defineConfig({
-  plugins: [react()], // Ativa o plugin do React para processar JSX nos seus ficheiros .jsx/.tsx
+  plugins: [react()], // Garante que o plugin do React está a ser usado
   base: '/simulador-appsheet/', // Base URL para o deployment (útil para GitHub Pages)
-  // Adicionar otimizações recomendadas e resolver problemas de importação do Firebase
   build: {
-    minify: 'terser', // Minificação usando Terser para otimização do tamanho
-    sourcemap: false, // Desativa sourcemaps para produção (pode ativar para depuração)
-    chunkSizeWarningLimit: 1000, // Aumenta o limite de aviso para o tamanho dos chunks
-    rollupOptions: {
-      external: [
-        'firebase/app',
-        'firebase/auth',
-        'firebase/firestore',
-        // Adicione aqui outros módulos do Firebase que possa estar a usar, como:
-        // 'firebase/analytics',
-        // 'firebase/storage',
-        // 'firebase/database',
-      ],
-    },
+    minify: 'terser',
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+    // REMOVIDO: rollupOptions.external para permitir que o Firebase seja bundlado
+    // rollupOptions: {
+    //   external: [
+    //     'firebase/app',
+    //     'firebase/auth',
+    //     'firebase/firestore',
+    //   ],
+    // },
   },
-  // Melhorar performance em desenvolvimento
   server: {
-    open: true, // Abre o navegador automaticamente ao iniciar o servidor de desenvolvimento
-    port: 3000 // Define a porta para o servidor de desenvolvimento
+    open: true,
+    port: 3000
   }
 });
