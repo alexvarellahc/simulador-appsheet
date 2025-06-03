@@ -220,8 +220,8 @@ const App = () => {
         createDefaultAdmin();
     }, [db, isAuthReady, userId]); // Dependências: executar quando db, auth e userId estiverem prontos
 
-    // MOVIDO PARA O TOPO DO COMPONENTE PARA SEGUIR AS REGRAS DOS HOOKS
     // Effect para resetar formUserData quando a view muda ou editingUser é atualizado
+    // Agora está no topo do componente, fora de renderContent
     useEffect(() => {
         // Define initialUserData com base no modo de edição ou adição
         const initialUserData = editingUser ? editingUser : {
@@ -254,13 +254,14 @@ const App = () => {
 
             await setDoc(userDocRef, user, { merge: true }); // 'merge: true' para atualizar campos existentes
             setEditingUser(null);
-            // setUserData({ // Esta linha não é mais necessária aqui, pois formUserData é gerido por um useEffect
-            //     name: '',
-            //     email: '',
-            //     role: 'User',
-            //     active: true,
-            //     accessibleApps: []
-            // });
+            // Resetar o formulário após salvar
+            setFormUserData({
+                name: '',
+                email: '',
+                role: 'User',
+                active: true,
+                accessibleApps: []
+            });
             setCurrentView('admin-users');
             console.log("Usuário salvo com sucesso:", user.email);
         } catch (saveError) {
