@@ -7,7 +7,7 @@ import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, getDoc } 
 // NÃO as modifique, elas serão preenchidas em tempo de execução.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-// CORREÇÃO: Usar __initial_auth_token no lado direito do ternário
+// Certifica-se de que o token de autenticação inicial é lido corretamente
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 // Se estiver a correr localmente no seu ambiente de desenvolvimento:
@@ -15,7 +15,7 @@ const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial
 // Certifique-se de que o caminho './assets/logo alex.png' está correto em relação a este ficheiro.
 // import seuLogo from './assets/logo alex.png';
 
-// Componente Icon para SVG - ESTE COMPONENTE DEVE ESTAR AQUI, NO SEU FICHEIRO REACT (App.jsx)
+// Componente Icon para SVG
 const Icon = ({ name, className = '' }) => {
     const icons = {
         user: <path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />,
@@ -76,41 +76,47 @@ const App = () => {
     // 1. Inicialização do Firebase e Autenticação
     useEffect(() => {
         console.log("Iniciando Firebase...");
-        const app = initializeApp(firebaseConfig);
-        const authInstance = getAuth(app);
-        const dbInstance = getFirestore(app);
+        try {
+            const app = initializeApp(firebaseConfig);
+            const authInstance = getAuth(app);
+            const dbInstance = getFirestore(app);
 
-        setAuth(authInstance);
-        setDb(dbInstance);
+            setAuth(authInstance);
+            setDb(dbInstance);
 
-        // Listener para o estado de autenticação
-        const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
-            if (user) {
-                console.log("Usuário autenticado:", user.uid);
-                setUserId(user.uid);
-            } else {
-                console.log("Nenhum usuário autenticado. Tentando autenticação...");
-                // Se não houver usuário autenticado com token, tenta autenticar anonimamente
-                try {
-                    if (initialAuthToken) {
-                        console.log("Tentando autenticar com token personalizado...");
-                        await signInWithCustomToken(authInstance, initialAuthToken);
-                    } else {
-                        console.log("Tentando autenticar anonimamente...");
-                        await signInAnonymously(authInstance);
+            // Listener para o estado de autenticação
+            const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+                if (user) {
+                    console.log("Usuário autenticado:", user.uid);
+                    setUserId(user.uid);
+                } else {
+                    console.log("Nenhum usuário autenticado. Tentando autenticação...");
+                    // Se não houver usuário autenticado com token, tenta autenticar anonimamente
+                    try {
+                        if (initialAuthToken) {
+                            console.log("Tentando autenticar com token personalizado...");
+                            await signInWithCustomToken(authInstance, initialAuthToken);
+                        } else {
+                            console.log("Tentando autenticar anonimamente...");
+                            await signInAnonymously(authInstance);
+                        }
+                        console.log("Autenticação bem-sucedida. UID:", authInstance.currentUser?.uid);
+                        setUserId(authInstance.currentUser?.uid || crypto.randomUUID()); // Garante que userId é definido
+                    } catch (anonAuthError) {
+                        console.error("Erro ao autenticar anonimamente:", anonAuthError);
+                        setError("Falha na autenticação. Tente novamente.");
                     }
-                    console.log("Autenticação bem-sucedida. UID:", authInstance.currentUser?.uid);
-                    setUserId(authInstance.currentUser?.uid || crypto.randomUUID()); // Garante que userId é definido
-                } catch (anonAuthError) {
-                    console.error("Erro ao autenticar anonimamente:", anonAuthError);
-                    setError("Falha na autenticação. Tente novamente.");
                 }
-            }
-            setIsAuthReady(true); // Autenticação inicial verificada
-            console.log("Autenticação pronta (isAuthReady = true).");
-        });
+                setIsAuthReady(true); // Autenticação inicial verificada
+                console.log("Autenticação pronta (isAuthReady = true).");
+            });
 
-        return () => unsubscribe(); // Limpa o listener ao desmontar
+            return () => unsubscribe(); // Limpa o listener ao desmontar
+        } catch (initError) {
+            console.error("Erro na inicialização do Firebase:", initError);
+            setError("Erro crítico na inicialização do sistema. Verifique a configuração do Firebase.");
+            setLoading(false); // Parar o estado de carregamento se a inicialização falhar
+        }
     }, []);
 
     // 2. Carregar Usuários do Firestore (após autenticação e db estarem prontos)
@@ -595,7 +601,7 @@ const App = () => {
                     </div>
                 );
 
-            case 'view-users': // Esta view foi removida do fluxo de navegação
+            case 'view-users': // Esta view foi removida do fluxo de navegação para não-administradores
                 return (
                     <div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
