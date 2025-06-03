@@ -149,6 +149,44 @@ const App = () => {
         return () => unsubscribe(); // Limpa o listener ao desmontar
     }, [db, isAuthReady, userId]); // Dependências para re-executar quando db ou userId mudam
 
+    // 3. Criar Admin Padrão se não existir (NEW)
+    useEffect(() => {
+        const createDefaultAdmin = async () => {
+            if (!db || !isAuthReady || !userId) {
+                return;
+            }
+
+            const adminEmail = 'admin@example.com';
+            const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
+            const adminDocRef = doc(usersCollectionRef, 'admin-default'); // ID fixo para o admin padrão
+
+            try {
+                const adminDoc = await getDoc(adminDocRef);
+                if (!adminDoc.exists()) {
+                    console.log("Criando usuário admin padrão...");
+                    const defaultAdminUser = {
+                        id: 'admin-default',
+                        name: 'Admin Padrão',
+                        email: adminEmail,
+                        role: 'Admin',
+                        active: true,
+                        accessibleApps: mockExternalApps.map(app => app.name)
+                    };
+                    await setDoc(adminDocRef, defaultAdminUser);
+                    console.log("Usuário admin padrão criado.");
+                    // O onSnapshot listener irá capturar e atualizar o estado 'users' e 'userEmail'
+                } else {
+                    console.log("Usuário admin padrão já existe.");
+                }
+            } catch (err) {
+                console.error("Erro ao verificar/criar admin padrão:", err);
+                setError("Erro na inicialização do admin. Recarregue a página.");
+            }
+        };
+
+        createDefaultAdmin();
+    }, [db, isAuthReady, userId]); // Dependências: executar quando db, auth e userId estiverem prontos
+
     // Funções auxiliares para obter detalhes do usuário
     const getUserRole = email => users.find(u => u.email === email)?.role || 'Guest';
     const getUserName = email => users.find(u => u.email === email)?.name || 'Unknown';
