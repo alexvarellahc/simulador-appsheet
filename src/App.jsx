@@ -3,23 +3,35 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
-// Variáveis globais fornecidas pelo ambiente Canvas para Firebase
-// NÃO as modifique, elas serão preenchidas em tempo de execução.
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-// Certifica-se de que o token de autenticação inicial é lido corretamente
+// Sua configuração do Firebase, fornecida explicitamente.
+// Esta configuração será usada diretamente, em vez de depender de variáveis globais do ambiente.
+const firebaseConfig = {
+  apiKey: "AIzaSyCjVr5-UHNxaBkqsg-7iEnr5GOjhDHLx-Y",
+  authDomain: "simuladorappsheet.firebaseapp.com",
+  projectId: "simuladorappsheet",
+  storageBucket: "simuladorappsheet.firebasestorage.app",
+  messagingSenderId: "161061857473",
+  appId: "1:161061857473:web:9ef4fa4a9a94d4f6c5cc40",
+  measurementId: "G-FBRXGWVE09"
+};
+
+// O appId agora é derivado diretamente do projectId da sua configuração do Firebase
+const appId = firebaseConfig.projectId;
+
+// O token de autenticação inicial ainda pode ser fornecido pelo ambiente, se aplicável.
+// No entanto, para evitar o erro 'custom-token-mismatch', vamos focar na autenticação anónima.
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 // Se estiver a correr localmente no seu ambiente de desenvolvimento:
 // Pode descomentar a linha abaixo e usar o seu ficheiro de logo local.
 // Certifique-se de que o caminho './assets/logo alex.png' está correto em relação a este ficheiro.
-// import seuLogo from './assets/logo alex.png';
+// import seuLogo from './assets/logo alex.2png';
 
 // Componente Icon para SVG
 const Icon = ({ name, className = '' }) => {
     const icons = {
         user: <path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />,
-        shield: <path d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.47-1.688 3.344-.48.403-.878.785-1.22 1.133-.163.163-.295.313-.385.437L12 21l-5.307-5.49a8.077 8.077 0 0 1-.386-.437 6.072 6.072 0 0 1-1.219-1.133A9.07 9.07 0 0 1 3 12c0-1.268.63-2.47 1.688-3.344.48-.403.878-.785 1.22-1.133.163-.163.295-.313.385-.437L12 3l5.307 5.49a8.077 8.077 0 0 1 .386.437 6.072 6.072 0 0 1 1.219 1.133A9.07 9.07 0 0 1 21 12Z" />,
+        shield: <path d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.47-1.688 3.344-.48.403-.878.785-1.22 1.133-.163.163-.295.313-.385.437L12 21l-5.307-5.49a8.077 8.077 0 0 1-.386-.437 6.072 6.072 0 0 1-1.219-1.133A9.07 9.07 0 0 1 3 12c0-1.268.63-2.47 1.688-3.344.48-.403.878-.785 1.22-1.133.163-.163.295-.313.437L12 3l5.307 5.49a8.077 8.077 0 0 1 .386.437 6.072 6.072 0 0 1 1.219 1.133A9.07 9.07 0 0 1 21 12Z" />,
         home: <path d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12m-4.5 9V15a2.25 2.25 0 0 0-2.25-2.25H15M10.5 21h3.75m-9.75-3v-4.5h4.5" />,
         'plus-circle': <path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />,
         'external-link': <path d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />,
@@ -76,11 +88,12 @@ const App = () => {
     // 1. Inicialização do Firebase e Autenticação
     useEffect(() => {
         console.log("Iniciando Firebase...");
-        console.log("Firebase Config:", firebaseConfig); // Adicionado para depuração
         try {
             const app = initializeApp(firebaseConfig);
             const authInstance = getAuth(app);
             const dbInstance = getFirestore(app);
+
+            console.log("Auth Instance:", authInstance); // Log para depuração
 
             setAuth(authInstance);
             setDb(dbInstance);
@@ -91,21 +104,15 @@ const App = () => {
                     console.log("Usuário autenticado:", user.uid);
                     setUserId(user.uid);
                 } else {
-                    console.log("Nenhum usuário autenticado. Tentando autenticação...");
-                    // Se não houver usuário autenticado com token, tenta autenticar anonimamente
+                    console.log("Nenhum usuário autenticado. Tentando autenticação anónima...");
+                    // Tenta sempre autenticar anonimamente primeiro para evitar problemas com custom tokens
                     try {
-                        if (initialAuthToken) {
-                            console.log("Tentando autenticar com token personalizado...");
-                            await signInWithCustomToken(authInstance, initialAuthToken);
-                        } else {
-                            console.log("Tentando autenticar anonimamente...");
-                            await signInAnonymously(authInstance);
-                        }
-                        console.log("Autenticação bem-sucedida. UID:", authInstance.currentUser?.uid);
+                        await signInAnonymously(authInstance);
+                        console.log("Autenticação anónima bem-sucedida. UID:", authInstance.currentUser?.uid);
                         setUserId(authInstance.currentUser?.uid || crypto.randomUUID()); // Garante que userId é definido
                     } catch (anonAuthError) {
                         console.error("Erro ao autenticar anonimamente:", anonAuthError);
-                        setError("Falha na autenticação. Tente novamente.");
+                        setError("Falha na autenticação. Por favor, verifique a configuração de autenticação anónima no Firebase.");
                     }
                 }
                 setIsAuthReady(true); // Autenticação inicial verificada
@@ -509,21 +516,72 @@ const App = () => {
             case 'admin-add-user':
             case 'admin-edit-user':
                 const isEditing = currentView === 'admin-edit-user';
+                // Set initial form data based on whether it's an edit or add operation
+                const initialUserData = isEditing ? editingUser : {
+                    name: '',
+                    email: '',
+                    role: 'User',
+                    active: true,
+                    accessibleApps: []
+                };
+
+                // State for the form fields
+                // Usar um useState local para o formulário, inicializado com initialUserData
+                const [formUserData, setFormUserData] = useState(initialUserData);
+
+                // Effect para resetar formUserData quando a view muda ou editingUser é atualizado
+                useEffect(() => {
+                    setFormUserData(initialUserData);
+                }, [currentView, editingUser]);
+
+                /**
+                 * Handles changes to input fields in the user form.
+                 * Updates the formUserData state accordingly.
+                 */
+                const handleFormChange = (e) => {
+                    const { name, value, type, checked } = e.target;
+                    setFormUserData(prev => ({
+                        ...prev,
+                        [name]: type === 'checkbox' ? checked : value
+                    }));
+                };
+
+                /**
+                 * Toggles the accessibility of an app for the current user being edited/added.
+                 * @param {string} appName - The name of the app to toggle.
+                 */
+                const handleFormAppToggle = (appName) => {
+                    setFormUserData(prev => ({
+                        ...prev,
+                        accessibleApps: prev.accessibleApps.includes(appName)
+                            ? prev.accessibleApps.filter(app => app !== appName) // Remove app if already present
+                            : [...prev.accessibleApps, appName] // Add app if not present
+                    }));
+                };
+
+                /**
+                 * Handles the form submission for adding or updating a user.
+                 * Prevents default form submission and calls handleSaveUser.
+                 */
+                const handleFormSubmit = (e) => {
+                    e.preventDefault();
+                    handleSaveUser(formUserData);
+                };
 
                 return (
                     <div className="p-6 bg-white rounded-lg shadow-md max-w-xl mx-auto">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
                             <Icon name="user-plus" className="w-6 h-6 text-purple-600" /> {isEditing ? 'Editar Usuário' : 'Adicionar Novo Usuário'}
                         </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                        <form onSubmit={handleFormSubmit} className="space-y-4">
                             <div>
                                 <label htmlFor="name" className="block text-gray-700 text-sm font-bold mb-2">Nome:</label>
                                 <input
                                     type="text"
                                     id="name"
                                     name="name"
-                                    value={userData.name}
-                                    onChange={handleChange}
+                                    value={formUserData.name}
+                                    onChange={handleFormChange}
                                     className="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                     required
                                 />
@@ -534,8 +592,8 @@ const App = () => {
                                     type="email"
                                     id="email"
                                     name="email"
-                                    value={userData.email}
-                                    onChange={handleChange}
+                                    value={formUserData.email}
+                                    onChange={handleFormChange}
                                     className="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                     required
                                 />
@@ -545,8 +603,8 @@ const App = () => {
                                 <select
                                     id="role"
                                     name="role"
-                                    value={userData.role}
-                                    onChange={handleChange}
+                                    value={formUserData.role}
+                                    onChange={handleFormChange}
                                     className="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 >
                                     <option value="Admin">Admin</option>
@@ -559,8 +617,8 @@ const App = () => {
                                     type="checkbox"
                                     id="active"
                                     name="active"
-                                    checked={userData.active}
-                                    onChange={handleChange}
+                                    checked={formUserData.active}
+                                    onChange={handleFormChange}
                                     className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                 />
                                 <label htmlFor="active" className="text-gray-700 text-sm font-bold">Ativo</label>
@@ -574,8 +632,8 @@ const App = () => {
                                             <input
                                                 type="checkbox"
                                                 id={`app-${app.name}`}
-                                                checked={userData.accessibleApps.includes(app.name)}
-                                                onChange={() => handleAppToggle(app.name)}
+                                                checked={formUserData.accessibleApps.includes(app.name)}
+                                                onChange={() => handleFormAppToggle(app.name)}
                                                 className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                             />
                                             <label htmlFor={`app-${app.name}`} className="text-gray-700 text-sm">{app.name}</label>
@@ -602,78 +660,32 @@ const App = () => {
                     </div>
                 );
 
-            case 'view-users': // Esta view foi removida do fluxo de navegação para não-administradores
-                return (
-                    <div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
-                            <Icon name="user" className="w-6 h-6 text-gray-600" /> Lista de Usuários
-                        </h2>
-                        <div className="overflow-x-auto mb-8">
-                            <table className="min-w-full bg-white rounded-lg shadow-md">
-                                <thead className="bg-gray-200">
-                                    <tr>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Nome</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Email</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Função</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Ativo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map(user => (
-                                        <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                            <td className="py-3 px-4 text-gray-800">{user.name}</td>
-                                            <td className="py-3 px-4 text-gray-800">{user.email}</td>
-                                            <td className="py-3 px-4 text-gray-800">{user.role}</td>
-                                            <td className="py-3 px-4 text-gray-800">
-                                                {user.active ? (
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Sim</span>
-                                                ) : (
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Não</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        <button
-                            onClick={() => setCurrentView('welcome')}
-                            className="flex items-center justify-center gap-2 bg-gray-500 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-gray-300 mx-auto"
-                        >
-                            <Icon name="home" className="w-5 h-5" /> Voltar ao Início
-                        </button>
-                    </div>
-                );
-
             default:
                 return <div className="text-center p-6 text-red-500">404 - View not found</div>;
         }
     };
 
     return (
+        // Main container for the application, with responsive styling and font
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 font-inter">
+            {/* Link to Google Fonts for 'Inter' and Tailwind CSS CDN for styling */}
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
             <script src="https://cdn.tailwindcss.com"></script>
             <style>
                 {`
+                /* Basic styling for the body to apply the Inter font */
                 body {
                     font-family: 'Inter', sans-serif;
                 }
                 `}
             </style>
+            {/* Main application card with responsive width, shadow, and rounded corners */}
             <div className="max-w-5xl w-full mx-auto bg-white rounded-3xl shadow-2xl p-8 border border-gray-200">
                 <header className="text-center mb-10">
-                    {/*
-                        Para usar a sua logo localmente (no seu computador),
-                        descomente a linha 'import seuLogo from './assets/logo alex.png';' no topo do ficheiro
-                        e use 'src={seuLogo}' abaixo.
-
-                        No ambiente de sandbox (aqui), usamos um URL público.
-                    */}
+                    {/* Placeholder image for the logo, as local imports are not supported in sandbox */}
                     <img
-                        src="https://placehold.co/128x128/6366F1/FFFFFF?text=LOGO" // URL do placeholder para o ambiente de sandbox
-                        // src={seuLogo} // Descomente esta linha e comente a de cima para usar a sua logo localmente
-                        alt="Logo da Sistemas Varella"
+                        src="https://placehold.co/128x128/6366F1/FFFFFF?text=LOGO"
+                        alt="Logo"
                         className="w-32 h-32 object-contain mx-auto mb-4 rounded-full shadow-md border-2 border-indigo-200"
                     />
                     <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Sistemas Varella</h1>
@@ -681,6 +693,7 @@ const App = () => {
                 </header>
 
                 <main>
+                    {/* Renders the content based on the current view */}
                     {renderContent()}
                 </main>
             </div>
