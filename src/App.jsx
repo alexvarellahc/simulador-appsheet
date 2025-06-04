@@ -1,59 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, setDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
 
-// Configuração do Firebase
-// Prioriza as variáveis de ambiente do Canvas se existirem, caso contrário, usa a config hardcoded.
-const firebaseConfig = typeof __firebase_config !== 'undefined' 
-    ? JSON.parse(__firebase_config) 
-    : {
-        apiKey: "AIzaSyCjVr5-UHNxaBkqsg-7iEnr5GOjhDHLx-Y",
-        authDomain: "simuladorappsheet.firebaseapp.com",
-        projectId: "simuladorappsheet",
-        storageBucket: "simuladorappsheet.firebasestorage.app",
-        messagingSenderId: "161061857473",
-        appId: "1:161061857473:web:9ef4fa4a9a94d4f6c5cc40",
-        measurementId: "G-FBRXGWVE09"
-      };
-
-// O ID da aplicação é derivado do projectId para o caminho do Firestore.
-// Usa __app_id se disponível, caso contrário, o projectId da config.
-const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
+// Componente de Ícone usando caminhos SVG inline
+// (já que lucide-react não pode ser instalado na sandbox)
+const Icon = ({ name, className = '' }) => {
+    const icons = {
+        user: <path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />,
+        shield: <path d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.47-1.688 3.344-.48.403-.878.785-1.22 1.133-.163.163-.295.313-.385.437L12 21l-5.307-5.49a8.077 8.077 0 0 1-.386-.437 6.072 6.072 0 0 1-1.219-1.133A9.07 9.07 0 0 1 3 12c0-1.268.63-2.47 1.688-3.344.48-.403.878-.785 1.22-1.133.163-.163.295-.313.385-.437L12 3l5.307 5.49a8.077 8.077 0 0 1 .386.437 6.072 6.072 0 0 1 1.219 1.133A9.07 9.07 0 0 1 21 12Z" />,
+        home: <path d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12m-4.5 9V15a2.25 2.25 0 0 0-2.25-2.25H15M10.5 21h3.75m-9.75-3v-4.5h4.5" />,
+        'plus-circle': <path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />,
+        'external-link': <path d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />,
+        apps: <path d="M10.5 8.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM10.5 18.75a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM18 8.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM18 18.75a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" />,
+        'user-plus': <path d="M18 18.75c0 .621-.504 1.125-1.125 1.125H5.25A1.125 1.125 0 0 1 4.125 19.5v-2.25m10.5-1.125h2.25c.621 0 1.125-.504 1.125-1.125v-1.5m-3.75-3.75H10.5m-1.5-4.5h.008v.008H9Zm2.25 0h.008v.008H11.25ZM6 10.5h.008v.008H6Zm2.25 0h.008v.008H8.25Z" />,
+        'pencil': <path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />,
+        'trash': <path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.927a2.25 2.25 0 0 1-2.244-2.077L4.78 5.893m14.825 0a.375.375 0 1 0 0-.75.375.375 0 0 0 0 .75ZM7.5 14.25a.75.75 0 0 0 0 1.5h.008v.008H7.5V14.25Zm10.5 0a.75.75 0 0 0 0 1.5h.008v.008H18V14.25Zm-4.5 0a.75.75 0 0 0 0 1.5h.008v.008H13.5V14.25Z" />
+    };
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+            {icons[name]}
+        </svg>
+    );
+};
 
 const App = () => {
-    // Estados para as instâncias do Firebase (Firestore e Auth)
-    const [db, setDb] = useState(null);
-    const [auth, setAuth] = useState(null);
-    // userId é o UID do utilizador autenticado no Firebase
-    const [userId, setUserId] = useState(null);
-    // isAuthReady indica se o processo de autenticação inicial foi concluído
-    const [isAuthReady, setIsAuthReady] = useState(false); 
-
     // Estado para simular o login do usuário atual na UI
-    // Por padrão, simula o login do "admin@example.com"
     const [userEmail, setUserEmail] = useState('admin@example.com');
     // Estado para controlar qual vista (tela) está sendo exibida na aplicação
     const [currentView, setCurrentView] = useState('welcome');
     // Estado para armazenar o objeto do usuário que está sendo editado no painel administrativo
     const [editingUser, setEditingUser] = useState(null);
-
-    // Estado para gerenciar os dados do formulário de adicionar/editar usuário
-    // É inicializado com valores vazios ou padrão
-    const [formUserData, setFormUserData] = useState({
-        name: '',
-        email: '',
-        role: 'User', // Papel padrão para novos usuários
-        active: true, // Usuário ativo por padrão
-        accessibleApps: [] // Nenhuns aplicativos acessíveis por padrão
-    });
-
-    // Estado para armazenar a lista de usuários carregados do Firestore
-    const [users, setUsers] = useState([]);
-    // Estado para controlar o estado de carregamento dos dados
-    const [loading, setLoading] = useState(true); 
-    // Estado para armazenar mensagens de erro que podem ser exibidas na UI
-    const [error, setError] = useState(null);
 
     // Dados mockados para os aplicativos externos que o sistema pode gerenciar.
     // Mantidos em ordem para exibição consistente.
@@ -67,247 +41,183 @@ const App = () => {
         { name: 'ESTOQUE', url: 'https://www.appsheet.com/start/f3558652-c5b9-4756-bbd3-51f6a8dfac93' }
     ];
 
-    // Efeito para inicializar o Firebase App, Auth e Firestore.
-    // É executado apenas uma vez, na montagem inicial do componente.
-    useEffect(() => {
-        try {
-            const app = initializeApp(firebaseConfig);
-            const authInstance = getAuth(app);
-            const dbInstance = getFirestore(app);
-
-            setAuth(authInstance);
-            setDb(dbInstance);
-
-            // Observador do estado de autenticação do Firebase.
-            // Garante que o userId é atualizado e a autenticação é tratada.
-            const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
-                if (user) {
-                    // Se um utilizador estiver logado (mesmo que anonimamente), define o userId
-                    setUserId(user.uid);
-                } else {
-                    // Se nenhum utilizador estiver logado, tenta autenticar anonimamente
-                    try {
-                        await signInAnonymously(authInstance);
-                        // Define o userId com o UID do utilizador anónimo ou um UUID aleatório como fallback
-                        setUserId(authInstance.currentUser?.uid || crypto.randomUUID());
-                    } catch (anonAuthError) {
-                        console.error("Erro ao autenticar anonimamente:", anonAuthError);
-                        setError("Falha na autenticação. Por favor, verifique a configuração de autenticação anónima no Firebase.");
-                    }
-                }
-                setIsAuthReady(true); // Marca a autenticação inicial como concluída
-            });
-
-            // Retorna uma função de limpeza para desinscrever o observador de autenticação
-            return () => unsubscribe();
-        } catch (initError) {
-            console.error("Erro na inicialização do Firebase:", initError);
-            setError("Erro crítico na inicialização do sistema. Verifique a configuração do Firebase.");
-            setLoading(false);
+    // Estado para armazenar a lista de usuários localmente.
+    // Inclui um admin padrão e outros usuários para simulação.
+    const [users, setUsers] = useState(() => {
+        // Inicializa com dados padrão se não houver nada no localStorage (para persistência básica em recargas)
+        const savedUsers = localStorage.getItem('appUsers');
+        if (savedUsers) {
+            return JSON.parse(savedUsers);
         }
-    }, []); // Array de dependências vazio significa que este efeito é executado apenas uma vez
+        return [
+            { id: '1', name: 'Admin Padrão', email: 'admin@example.com', role: 'Admin', active: true, accessibleApps: mockExternalApps.map(app => app.name) },
+            { id: '2', name: 'Utilizador Normal', email: 'user@example.com', role: 'User', active: true, accessibleApps: ['SISTEMA CT', 'FINANCEIRO'] },
+            { id: '3', name: 'Convidado', email: 'guest@example.com', role: 'Guest', active: true, accessibleApps: ['SISTEMA CT'] },
+            { id: '4', name: 'Inativo', email: 'inactive@example.com', role: 'User', active: false, accessibleApps: ['SISTEMA CT'] }
+        ];
+    });
 
-    // Efeito para carregar usuários do Firestore e criar o usuário admin padrão.
-    // Este efeito depende das instâncias do DB, Auth e do userId estarem prontos.
+    // Efeito para persistir os utilizadores no localStorage sempre que o estado 'users' mudar
     useEffect(() => {
-        // Só executa se o DB e a autenticação estiverem prontos e houver um userId válido.
-        if (!db || !isAuthReady || !userId) {
-            return;
-        }
+        localStorage.setItem('appUsers', JSON.stringify(users));
+    }, [users]);
 
-        setLoading(true); // Inicia o estado de carregamento
-        setError(null); // Limpa quaisquer erros anteriores
 
-        // Referência à coleção de usuários públicos no Firestore
-        const usersCollectionPath = `artifacts/${appId}/public/data/users`;
-        const usersCollectionRef = collection(db, usersCollectionPath);
-
-        // Observador em tempo real para a coleção de usuários.
-        // onSnapshot mantém 'users' atualizado com as alterações no Firestore.
-        const unsubscribe = onSnapshot(usersCollectionRef, (snapshot) => {
-            const fetchedUsers = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            setUsers(fetchedUsers); // Atualiza o estado com os usuários obtidos
-            setLoading(false); // Desativa o estado de carregamento
-
-            // Define o email do usuário simulado para o admin padrão, se existir,
-            // ou para o primeiro usuário na lista, ou vazio se não houver usuários.
-            if (fetchedUsers.length > 0) {
-                const adminUser = fetchedUsers.find(u => u.email === 'admin@example.com'); 
-                if (adminUser) {
-                    setUserEmail(adminUser.email);
-                } else {
-                    setUserEmail(fetchedUsers[0].email); 
-                }
-            } else {
-                setUserEmail('');
-            }
-
-        }, (firestoreError) => {
-            // Lida com erros ao carregar dados do Firestore, incluindo permissões negadas.
-            console.error("Erro ao carregar usuários do Firestore:", firestoreError.code, firestoreError.message);
-            setError(`Erro ao carregar usuários: ${firestoreError.message}. Verifique as permissões do Firestore e tente recarregar a página.`);
-            setLoading(false);
-        });
-
-        // Função assíncrona para tentar criar o usuário admin padrão se ele não existir.
-        const createDefaultAdmin = async () => {
-            const adminDocRef = doc(usersCollectionRef, 'admin-default'); 
-            try {
-                const adminDoc = await getDoc(adminDocRef); 
-                if (!adminDoc.exists()) { 
-                    // Se o documento admin-default não existir, cria-o.
-                    const defaultAdminUser = {
-                        id: 'admin-default',
-                        name: 'Admin Padrão',
-                        email: 'admin@example.com',
-                        role: 'Admin',
-                        active: true,
-                        accessibleApps: mockExternalApps.map(app => app.name)
-                    };
-                    await setDoc(adminDocRef, defaultAdminUser); 
-                }
-            } catch (err) {
-                console.error("Erro ao verificar/criar admin padrão:", err);
-                // Este erro não bloqueia a UI, pois o carregamento principal é tratado pelo onSnapshot.
-            }
-        };
-
-        createDefaultAdmin(); // Chama a função para criar o admin padrão
-
-        // Define um timeout para desativar o estado de carregamento se a operação demorar muito.
-        // Isso impede que a UI fique presa no "carregando" indefinidamente.
-        const loadingTimeout = setTimeout(() => {
-            if (loading) { 
-                console.warn("Timeout de carregamento de usuários atingido. Verifique dados ou permissões.");
-                setLoading(false);
-                if (!error) { 
-                    // Define uma mensagem de erro genérica se nenhuma outra tiver sido definida
-                    setError("O carregamento demorou muito. Verifique a conexão ou os dados.");
-                }
-            }
-        }, 15000); // 15 segundos de timeout
-
-        // Função de limpeza para desinscrever o observador e limpar o timeout.
-        return () => {
-            unsubscribe(); 
-            clearTimeout(loadingTimeout); 
-        };
-    }, [db, isAuthReady, userId, appId, mockExternalApps]); // Dependências deste efeito
-
-    // Efeito para resetar os dados do formulário quando a vista muda ou o usuário em edição é atualizado.
-    useEffect(() => {
-        // Define os dados iniciais do formulário: se estiver a editar, usa os dados do editingUser;
-        // caso contrário, usa um objeto vazio para um novo usuário.
-        const initialUserData = editingUser ? editingUser : {
-            name: '',
-            email: '',
-            role: 'User',
-            active: true,
-            accessibleApps: []
-        };
-        setFormUserData(initialUserData);
-    }, [currentView, editingUser]); 
-
-    // Funções auxiliares para obter detalhes do usuário a partir da lista 'users'.
+    // Helper function to get a user's role by email
     const getUserRole = email => users.find(u => u.email === email)?.role || 'Guest';
+    // Helper function to get a user's name by email
     const getUserName = email => users.find(u => u.email === email)?.name || 'Unknown';
+    // Helper function to check if a user is active by email
     const isUserActive = email => users.find(u => u.email === email)?.active || false;
 
     /**
-     * Função assíncrona para adicionar ou atualizar um usuário no Firestore.
-     * @param {object} user - O objeto do usuário a ser salvo.
+     * Handles saving (adding or updating) a user.
+     * If the user object has an 'id', it updates an existing user.
+     * Otherwise, it adds a new user with a generated unique ID.
+     * @param {object} user - The user object to save.
      */
-    const handleSaveUser = async (user) => {
-        if (!db) {
-            setError("Base de dados não inicializada.");
-            return;
+    const handleSaveUser = (user) => {
+        if (user.id) {
+            // Atualiza um utilizador existente
+            setUsers(prevUsers => prevUsers.map(u => u.id === user.id ? user : u));
+        } else {
+            // Adiciona um novo utilizador com um ID único
+            setUsers(prevUsers => [...prevUsers, { ...user, id: crypto.randomUUID() }]);
         }
-        setLoading(true);
-        setError(null);
-        try {
-            const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
-            // Se o usuário já tiver um ID, usa-o; caso contrário, gera um novo UUID.
-            const userDocRef = doc(usersCollectionRef, user.id || crypto.randomUUID()); 
-
-            // Usa setDoc com merge: true para atualizar ou criar o documento.
-            await setDoc(userDocRef, user, { merge: true }); 
-            setEditingUser(null); // Limpa o usuário em edição
-            // Reseta o formulário para adicionar um novo usuário
-            setFormUserData({
-                name: '',
-                email: '',
-                role: 'User',
-                active: true,
-                accessibleApps: []
-            });
-            setCurrentView('admin-users'); // Volta para a lista de usuários
-        } catch (saveError) {
-            console.error("Erro ao salvar usuário no Firestore:", saveError);
-            setError("Erro ao salvar usuário. Verifique os dados e tente novamente.");
-        } finally {
-            setLoading(false); // Desativa o estado de carregamento
-        }
+        setEditingUser(null); // Limpa o utilizador em edição
+        setCurrentView('admin-users'); // Navega de volta para a lista de utilizadores após guardar
     };
 
     /**
-     * Função assíncrona para deletar um usuário do Firestore.
-     * @param {string} userIdToDelete - O ID do usuário a ser deletado.
+     * Handles deleting a user from the list.
+     * @param {string} userIdToDelete - The ID of the user to delete.
      */
-    const handleDeleteUser = async (userIdToDelete) => {
-        if (!db) {
-            setError("Base de dados não inicializada.");
-            return;
-        }
-        setLoading(true);
-        setError(null);
-        try {
-            const usersCollectionRef = collection(db, `artifacts/${appId}/public/data/users`);
-            await deleteDoc(doc(usersCollectionRef, userIdToDelete)); 
-        } catch (deleteError) {
-            console.error("Erro ao deletar usuário do Firestore:", deleteError);
-            setError("Erro ao deletar usuário. Tente novamente.");
-        } finally {
-            setLoading(false);
-        }
+    const handleDeleteUser = (userIdToDelete) => {
+        // Filtra o utilizador com o ID correspondente
+        setUsers(prevUsers => prevUsers.filter(u => u.id !== userIdToDelete));
     };
 
     /**
-     * Lida com as mudanças nos campos do formulário de usuário.
-     * @param {object} e - O evento de mudança.
+     * Componente de Formulário para Adicionar/Editar Usuário.
+     * Separado para melhor organização e reutilização.
      */
-    const handleFormChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFormUserData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value // Lida com checkboxes e outros inputs
-        }));
+    const UserForm = ({ initialUserData, onSave, onCancel, mockExternalApps }) => {
+        const [userData, setUserData] = useState(initialUserData);
+
+        // Atualiza o estado do formulário se initialUserData mudar (ex: ao selecionar outro usuário para editar)
+        useEffect(() => {
+            setUserData(initialUserData);
+        }, [initialUserData]);
+
+        const handleChange = (e) => {
+            const { name, value, type, checked } = e.target;
+            setUserData(prev => ({
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            }));
+        };
+
+        const handleAppToggle = (appName) => {
+            setUserData(prev => ({
+                ...prev,
+                accessibleApps: prev.accessibleApps.includes(appName)
+                    ? prev.accessibleApps.filter(app => app !== appName)
+                    : [...prev.accessibleApps, appName]
+            }));
+        };
+
+        const handleSubmit = (e) => {
+            e.preventDefault();
+            onSave(userData);
+        };
+
+        return (
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <label htmlFor="name" className="block text-gray-800 text-base font-bold mb-2">Nome:</label>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={userData.name}
+                        onChange={handleChange}
+                        className="shadow-inner appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-800 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-gray-50"
+                        required
+                    />
+                </div>
+                <div>
+                    <label htmlFor="email" className="block text-gray-800 text-base font-bold mb-2">Email:</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={userData.email}
+                        onChange={handleChange}
+                        className="shadow-inner appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-800 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-gray-50"
+                        required
+                    />
+                </div>
+                <div>
+                    <label htmlFor="role" className="block text-gray-800 text-base font-bold mb-2">Função:</label>
+                    <select
+                        id="role"
+                        name="role"
+                        value={userData.role}
+                        onChange={handleChange}
+                        className="shadow-inner appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-800 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-gray-50"
+                    >
+                        <option value="Admin">Admin</option>
+                        <option value="User">User</option>
+                        <option value="Guest">Guest</option>
+                    </select>
+                </div>
+                <div className="flex items-center">
+                    <input
+                        type="checkbox"
+                        id="active"
+                        name="active"
+                        checked={userData.active}
+                        onChange={handleChange}
+                        className="mr-3 h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded-md cursor-pointer"
+                    />
+                    <label htmlFor="active" className="text-gray-800 text-base font-bold">Ativo</label>
+                </div>
+                <div>
+                    <label className="block text-gray-800 text-base font-bold mb-2">Aplicativos Acessíveis:</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        {mockExternalApps.map(app => (
+                            <div key={app.name} className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id={`app-${app.name}`}
+                                    checked={userData.accessibleApps.includes(app.name)}
+                                    onChange={() => handleAppToggle(app.name)}
+                                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                                />
+                                <label htmlFor={`app-${app.name}`} className="text-gray-700 text-sm font-medium">{app.name}</label>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="flex justify-end gap-4 mt-8">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="flex items-center justify-center gap-2 bg-gray-500 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-gray-300 font-semibold text-lg"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300 font-semibold text-lg"
+                    >
+                        {initialUserData.id ? 'Atualizar Usuário' : 'Adicionar Usuário'}
+                    </button>
+                </div>
+            </form>
+        );
     };
 
-    /**
-     * Lida com a alternância de acesso a aplicativos no formulário de usuário.
-     * Adiciona ou remove o nome do aplicativo da lista accessibleApps.
-     * @param {string} appName - O nome do aplicativo a ser alternado.
-     */
-    const handleFormAppToggle = (appName) => {
-        setFormUserData(prev => ({
-            ...prev,
-            accessibleApps: prev.accessibleApps.includes(appName)
-                ? prev.accessibleApps.filter(app => app !== appName) // Remove se já estiver incluído
-                : [...prev.accessibleApps, appName] // Adiciona se não estiver incluído
-        }));
-    };
-
-    /**
-     * Lida com o envio do formulário de usuário.
-     * @param {object} e - O evento de envio do formulário.
-     */
-    const handleSubmit = (e) => {
-        e.preventDefault(); // Previne o comportamento padrão do formulário (recarregar a página)
-        handleSaveUser(formUserData); // Chama a função para salvar o usuário
-    };
 
     // Renderização condicional do conteúdo principal da aplicação com base na `currentView`.
     const renderContent = () => {
@@ -315,32 +225,6 @@ const App = () => {
         const name = getUserName(userEmail);
         const active = isUserActive(userEmail);
 
-        // Exibe o estado de carregamento ou mensagens de erro
-        if (!isAuthReady || loading) {
-            return (
-                <div className="flex flex-col items-center justify-center h-64 text-gray-700">
-                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
-                    <p className="mt-4 text-lg">A carregar dados...</p>
-                </div>
-            );
-        }
-
-        if (error) {
-            return (
-                <div className="text-center p-6 bg-red-100 text-red-700 rounded-lg shadow-md max-w-lg mx-auto">
-                    <p className="font-bold text-xl mb-2">Erro:</p>
-                    <p>{error}</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200"
-                    >
-                        Recarregar Página
-                    </button>
-                </div>
-            );
-        }
-
-        // Renderiza as diferentes vistas da aplicação
         switch (currentView) {
             case 'welcome':
                 return (
@@ -382,9 +266,6 @@ const App = () => {
                                 ))}
                             </select>
                         </div>
-                        {userId && (
-                            <p className="mt-6 text-sm text-gray-500">ID do Usuário Logado: <span className="font-mono text-gray-700 break-all bg-gray-100 p-2 rounded-md">{userId}</span></p>
-                        )}
                     </div>
                 );
 
@@ -441,13 +322,6 @@ const App = () => {
                             <button
                                 onClick={() => {
                                     setEditingUser(null); 
-                                    setFormUserData({ // Reset form data for new user
-                                        name: '',
-                                        email: '',
-                                        role: 'User',
-                                        active: true,
-                                        accessibleApps: []
-                                    });
                                     setCurrentView('admin-add-user');
                                 }}
                                 className="flex items-center justify-center gap-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-purple-300 font-semibold text-lg"
@@ -532,7 +406,6 @@ const App = () => {
             case 'admin-add-user':
             case 'admin-edit-user':
                 const isEditing = currentView === 'admin-edit-user';
-                // Set initial form data based on whether it's an edit or add operation
                 const initialUserData = isEditing ? editingUser : {
                     name: '',
                     email: '',
@@ -541,136 +414,17 @@ const App = () => {
                     accessibleApps: []
                 };
 
-                // State for the form fields
-                const [userData, setUserData] = useState(initialUserData);
-
-                // Effect to reset userData when the view changes or editingUser is updated
-                useEffect(() => {
-                    setUserData(initialUserData);
-                }, [currentView, editingUser]);
-
-                /**
-                 * Handles changes to input fields in the user form.
-                 * Updates the userData state accordingly.
-                 */
-                const handleChange = (e) => {
-                    const { name, value, type, checked } = e.target;
-                    setUserData(prev => ({
-                        ...prev,
-                        [name]: type === 'checkbox' ? checked : value
-                    }));
-                };
-
-                /**
-                 * Toggles the accessibility of an app for the current user being edited/added.
-                 * @param {string} appName - The name of the app to toggle.
-                 */
-                const handleAppToggle = (appName) => {
-                    setUserData(prev => ({
-                        ...prev,
-                        accessibleApps: prev.accessibleApps.includes(appName)
-                            ? prev.accessibleApps.filter(app => app !== appName) // Remove app if already present
-                            : [...prev.accessibleApps, appName] // Add app if not present
-                    }));
-                };
-
-                /**
-                 * Handles the form submission for adding or updating a user.
-                 * Prevents default form submission and calls handleSaveUser.
-                 */
-                const handleSubmit = (e) => {
-                    e.preventDefault();
-                    handleSaveUser(userData);
-                };
-
                 return (
                     <div className="p-8 bg-white rounded-xl shadow-2xl max-w-xl mx-auto text-center border border-gray-100 transform transition-all duration-500 ease-in-out scale-100 hover:scale-105">
                         <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center justify-center gap-3 animate-fade-in-down">
                             {isEditing ? '✏️ Editar Usuário' : '➕ Adicionar Novo Usuário'}
                         </h2>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label htmlFor="name" className="block text-gray-800 text-base font-bold mb-2">Nome:</label>
-                                <input
-                                    type="text"
-                                    id="name"
-                                    name="name"
-                                    value={userData.name}
-                                    onChange={handleChange}
-                                    className="shadow-inner appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-800 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-gray-50"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="email" className="block text-gray-800 text-base font-bold mb-2">Email:</label>
-                                <input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    value={userData.email}
-                                    onChange={handleChange}
-                                    className="shadow-inner appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-800 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-gray-50"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="role" className="block text-gray-800 text-base font-bold mb-2">Função:</label>
-                                <select
-                                    id="role"
-                                    name="role"
-                                    value={userData.role}
-                                    onChange={handleChange}
-                                    className="shadow-inner appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-800 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-gray-50"
-                                >
-                                    <option value="Admin">Admin</option>
-                                    <option value="User">User</option>
-                                    <option value="Guest">Guest</option>
-                                </select>
-                            </div>
-                            <div className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="active"
-                                    name="active"
-                                    checked={userData.active}
-                                    onChange={handleChange}
-                                    className="mr-3 h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded-md cursor-pointer"
-                                />
-                                <label htmlFor="active" className="text-gray-800 text-base font-bold">Ativo</label>
-                            </div>
-                            <div>
-                                <label className="block text-gray-800 text-base font-bold mb-2">Aplicativos Acessíveis:</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                    {mockExternalApps.map(app => (
-                                        <div key={app.name} className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                id={`app-${app.name}`}
-                                                checked={userData.accessibleApps.includes(app.name)}
-                                                onChange={() => handleAppToggle(app.name)}
-                                                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-                                            />
-                                            <label htmlFor={`app-${app.name}`} className="text-gray-700 text-sm font-medium">{app.name}</label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-4 mt-8">
-                                <button
-                                    type="button"
-                                    onClick={() => setCurrentView('admin-users')}
-                                    className="flex items-center justify-center gap-2 bg-gray-500 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-gray-300 font-semibold text-lg"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300 font-semibold text-lg"
-                                >
-                                    {isEditing ? 'Atualizar Usuário' : 'Adicionar Usuário'}
-                                </button>
-                            </div>
-                        </form>
+                        <UserForm 
+                            initialUserData={initialUserData}
+                            onSave={handleSaveUser}
+                            onCancel={() => setCurrentView('admin-users')}
+                            mockExternalApps={mockExternalApps}
+                        />
                     </div>
                 );
 
@@ -680,6 +434,7 @@ const App = () => {
     };
 
     return (
+        // Contêiner principal da aplicação, com estilização responsiva e fonte
         <div className="w-full font-inter min-h-screen flex items-center justify-center py-10 bg-gradient-to-br from-blue-50 to-indigo-100"> 
             {/* Link para Google Fonts para 'Inter' e CDN do Tailwind CSS para estilização */}
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
